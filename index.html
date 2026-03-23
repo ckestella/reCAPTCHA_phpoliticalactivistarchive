@@ -595,7 +595,7 @@
     <div class="captcha-header">
       <div class="captcha-checkbox-area">
         <div class="checkbox-mock" id="mainCheckbox" onclick="activateCaptcha()"></div>
-        <span class="captcha-label">I am not a robot.</span>
+        <span class="captcha-label">I am not an elitist.</span>
       </div>
       <div class="recaptcha-branding">
         <span class="brand-title">reCAPTCHA</span>
@@ -871,7 +871,7 @@ function showFailure() {
     }, 800);
   } else {
     statusEl.className = 'status-line warn';
-    statusEl.textContent = `INCORRECT. ${['Humans and politicians look the same to you.', 'The algorithm cannot tell either.'][Math.min(failCount-1,1)]}`;
+    statusEl.textContent = `INCORRECT. ${['Try again.', 'After this attempt, you will be prompted to re-learn and restart.'][Math.min(failCount-1,1)]}`;
     setTimeout(() => {
       reshuffleGrid();
     }, 1200);
