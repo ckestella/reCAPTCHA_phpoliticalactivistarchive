@@ -871,7 +871,7 @@ function showFailure() {
     }, 800);
   } else {
     statusEl.className = 'status-line warn';
-    statusEl.textContent = `INCORRECT. ${['Try again. You may have missed some humans or selected elitist subjects.', 'After this attempt, you will be prompted to learn the subjects and restart.'][Math.min(failCount-1,1)]}`;
+    statusEl.textContent = `INCORRECT. ${['Try again. You may have missed some humans or selected elitist subjects.', 'You will be prompted to learn the subjects and restart.'][Math.min(failCount-1,1)]}`;
     setTimeout(() => {
       reshuffleGrid();
     }, 1200);
