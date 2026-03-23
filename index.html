@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Identify the Human Here</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Courier+Prime:wght@400;700&display=swap');
+
+  :root {
+    --glitch: #ff0040;
+    --cold: #00fff7;
+    --paper: #e8e0d0;
+    --ink: #1a1a1a;
+    --redact: #1a1a1a;
+    --decay: #8b7355;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0d0d0d;
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    position: relative;
+    align-items: flex-start;
+    padding: 40px 0;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Noise grain */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: -50%;
+    width: 200%;
+    height: 200%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9998;
+    animation: grain 0.5s steps(3) infinite;
+    opacity: 0.15;
+  }
+
+  @keyframes grain {
+    0%, 100% { transform: translate(0,0); }
+    25% { transform: translate(-2px, 1px); }
+    50% { transform: translate(1px, -2px); }
+    75% { transform: translate(2px, 1px); }
+  }
+
+  .screen-distort {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9997;
+    mix-blend-mode: screen;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .captcha-wrapper {
+    position: relative;
+    width: 460px;
+    transition: filter 0.8s ease;
+  }
+
+  .captcha-box {
+    background: #f4f0e8;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.1);
+    position: relative;
+  }
+
+  .captcha-header {
+    background: #f9f6f0;
+    border-bottom: 1px solid #d0ccc4;
+    padding: 14px 16px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .captcha-checkbox-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .checkbox-mock {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #c1bdb5;
+    border-radius: 2px;
+    background: white;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: border-color 0.2s;
+  }
+
+  .checkbox-mock:hover { border-color: #4a90d9; }
+
+  .captcha-label {
+    font-family: 'Courier Prime', monospace;
+    font-size: 14px;
+    color: #3d3d3d;
+    letter-spacing: 0.02em;
+  }
+
+  .recaptcha-branding {
+    text-align: right;
+    line-height: 1.5;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .recaptcha-branding .brand-title {
+    display: block;
+    font-size: 12px;
+    color: #4a90d9;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    margin-bottom: 3px;
+  }
+
+  .legal-link {
+    cursor: pointer;
+    color: #aaa;
+    font-size: 9px;
+    font-weight: normal;
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    transition: color 0.15s;
+    display: inline;
+  }
+  .legal-link:hover { color: #777; }
+
+  /* Image grid */
+  .image-grid-section {
+    padding: 12px;
+    background: #eae6dd;
+    border-bottom: 1px solid #d0ccc4;
+  }
+
+  .grid-instruction {
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px;
+    color: #2a2a2a;
+    margin-bottom: 10px;
+    padding: 0 2px;
+    line-height: 1.4;
+  }
+
+  .grid-instruction strong {
+    font-size: 16px;
+    display: block;
+    margin-bottom: 3px;
+    letter-spacing: 0.02em;
+    color: #1a1a1a;
+  }
+
+  .image-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+  }
+
+  .grid-cell {
+    position: relative;
+    aspect-ratio: 1;
+    cursor: pointer;
+    overflow: hidden;
+    background: #1a1a1a;
+    border: 2px solid transparent;
+    transition: border-color 0.15s;
+  }
+
+  .grid-cell:hover { border-color: rgba(74, 144, 217, 0.6); }
+  .grid-cell:hover canvas {
+    animation: hoverGlitch 0.4s steps(4) forwards;
+  }
+
+  @keyframes hoverGlitch {
+    0%   { filter: none; }
+    25%  { filter: hue-rotate(15deg) contrast(1.08) brightness(0.95); }
+    50%  { filter: hue-rotate(30deg) saturate(1.3) blur(0.5px); }
+    75%  { filter: hue-rotate(10deg) contrast(1.05) brightness(0.97); }
+    100% { filter: none; }
+  }
+  .grid-cell.selected { border-color: #4a90d9; }
+  .grid-cell.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    background: #4a90d9;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: bold;
+    z-index: 10;
+  }
+
+  .grid-cell canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    transition: filter 0.3s;
+  }
+
+  .cell-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.75);
+    color: #e8e0d0;
+    font-size: 8px;
+    padding: 3px 5px;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .grid-cell:hover .cell-label { opacity: 1; }
+
+  .captcha-footer {
+    background: #f9f6f0;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .verify-btn {
+    background: #4a90d9;
+    color: white;
+    border: none;
+    padding: 9px 22px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  .verify-btn:hover { background: #357abd; }
+  .verify-btn:active { transform: scale(0.98); }
+
+  .refresh-btn {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 5px;
+    transition: color 0.2s, transform 0.4s;
+    font-family: monospace;
+  }
+
+  .refresh-btn:hover { color: #4a90d9; transform: rotate(90deg); }
+
+  /* Answer panel */
+  .answer-panel {
+    display: none;
+    background: #0d0d0d;
+    border-top: 2px solid var(--glitch);
+    padding: 0;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.6s ease, padding 0.3s;
+  }
+
+  .answer-panel.open {
+    display: block;
+    max-height: none;
+    padding: 16px;
+  }
+
+  .answer-header {
+    color: var(--glitch);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .answer-header::before {
+    content: '//';
+    opacity: 0.5;
+  }
+
+  .person-card {
+    margin-bottom: 14px;
+    border-left: 2px solid var(--cold);
+    padding-left: 12px;
+    position: relative;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .person-image {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    border: 1px solid #444;
+    overflow: hidden;
+    border-radius: 2px;
+  }
+
+  .person-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+
+  .person-info {
+    flex: 1;
+  }
+
+  .person-name {
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--cold);
+    margin-bottom: 4px;
+    cursor: default;
+  }
+
+  .person-role {
+    font-size: 10px;
+    color: #ff8c42;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .person-bio {
+    font-size: 11px;
+    color: #aaa;
+    line-height: 1.6;
+    cursor: default;
+  }
+
+  /* REDACTION */
+  .redact {
+    background: var(--redact);
+    color: var(--redact);
+    border-radius: 1px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+    display: inline;
+    padding: 0 2px;
+    user-select: none;
+  }
+
+  .redact:hover {
+    background: #333;
+    color: var(--glitch);
+    letter-spacing: 0.15em;
+    animation: redactGlitch 0.4s steps(4);
+  }
+
+  @keyframes redactGlitch {
+    0%,100% { transform: scaleX(1); }
+    25% { transform: scaleX(1.05) skewX(2deg); }
+    50% { transform: scaleX(0.98) skewX(-1deg); }
+    75% { transform: scaleX(1.02); }
+  }
+
+  /* Scramble animation for images */
+  @keyframes pixelScramble {
+    0% { filter: none; }
+    25% { filter: blur(1px) hue-rotate(15deg) contrast(1.1); }
+    50% { filter: blur(0.5px) hue-rotate(30deg) brightness(0.9); }
+    75% { filter: blur(1px) saturate(1.3); }
+    100% { filter: none; }
+  }
+
+  .scrambling canvas {
+    animation: pixelScramble 0.6s steps(4) forwards;
+  }
+
+  /* Status text */
+  .status-line {
+    font-size: 10px;
+    color: #666;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.08em;
+    padding: 6px 14px 8px;
+    border-top: 1px solid #d0ccc4;
+    background: #f2ede4;
+  }
+
+  .status-line.error { color: var(--glitch); background: #1a0008; border-top-color: var(--glitch); }
+  .status-line.warn { color: #ff8c42; background: #1a0e00; }
+  .status-line.success { color: #00ff88; background: #001a0e; }
+
+  /* Pixel decay overlay for fail states */
+  .decay-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9996;
+    opacity: 0;
+    transition: opacity 1s;
+    mix-blend-mode: multiply;
+  }
+
+  /* Vertical glitch lines */
+  .glitch-line {
+    position: fixed;
+    width: 2px;
+    background: var(--glitch);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 9995;
+    mix-blend-mode: screen;
+    animation: glitchLineAnim 0.15s steps(3) infinite;
+  }
+
+  @keyframes glitchLineAnim {
+    0%,100% { opacity: 0; transform: scaleY(0); }
+    50% { opacity: 0.35; transform: scaleY(1); }
+  }
+
+  .attempt-counter {
+    font-size: 9px;
+    color: #888;
+    letter-spacing: 0.1em;
+    text-align: right;
+    padding: 4px 14px;
+    background: #f9f6f0;
+    border-bottom: 1px solid #d0ccc4;
+  }
+
+  .attempt-counter span { color: var(--glitch); font-weight: bold; }
+
+  /* Humanity meter */
+  .humanity-bar {
+    height: 3px;
+    background: #1a1a1a;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .humanity-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00ff88, #ffff00, var(--glitch));
+    background-size: 300% 100%;
+    transition: width 0.8s ease, background-position 0.8s;
+    width: 100%;
+    background-position: 0% 50%;
+  }
+
+  /* Final collapse */
+  .collapsed-state {
+    display: none;
+    padding: 40px 20px;
+    text-align: center;
+    background: #0d0d0d;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .collapsed-state.active { display: block; }
+
+  .collapsed-text {
+    font-size: 10px;
+    color: #333;
+    letter-spacing: 0.2em;
+    line-height: 2;
+    animation: fadeToNothing 3s ease forwards;
+  }
+
+  @keyframes fadeToNothing {
+    0% { color: #666; }
+    50% { color: #333; letter-spacing: 0.4em; }
+    100% { color: #111; letter-spacing: 0.6em; }
+  }
+
+
+  .legal-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: #f9f6f0;
+    z-index: 100;
+    flex-direction: column;
+    border-radius: 3px;
+  }
+  .legal-overlay.open { display: flex; }
+
+  .legal-overlay-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid #d0ccc4;
+    background: #f4f0e8;
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a1a;
+    flex-shrink: 0;
+  }
+
+  .legal-close-btn {
+    background: none;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    color: #888;
+    padding: 2px 6px;
+    line-height: 1;
+    transition: color 0.15s;
+    font-family: monospace;
+  }
+  .legal-close-btn:hover { color: #1a1a1a; }
+
+  .legal-overlay-body {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+    font-family: 'Courier Prime', monospace;
+    font-size: 12px;
+    color: #444;
+    line-height: 1.7;
+  }
+
+  .legal-overlay-body h3 {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #1a1a1a;
+    margin: 14px 0 6px;
+  }
+  .legal-overlay-body h3:first-child { margin-top: 0; }
+  .legal-overlay-body p { margin-bottom: 10px; }
+</style>
+</head>
+
+<!--Code begins here-->
+<body>
+
+<canvas class="decay-overlay" id="decayCanvas"></canvas>
+
+<div class="captcha-wrapper" id="captchaWrapper">
+  <div class="captcha-box">
+    <div class="humanity-bar">
+      <div class="humanity-fill" id="humanityFill"></div>
+    </div>
+
+    <div class="attempt-counter">
+      VERIFICATION ATTEMPT <span id="attemptNum">1</span> / 3
+    </div>
+
+    <div class="captcha-header">
+      <div class="captcha-checkbox-area">
+        <div class="checkbox-mock" id="mainCheckbox" onclick="activateCaptcha()"></div>
+        <span class="captcha-label">I am not a robot.</span>
+      </div>
+      <div class="recaptcha-branding">
+        <span class="brand-title">reCAPTCHA</span>
+        <span class="legal-link" onclick="openOverlay('privacy')">Privacy</span><span style="color:#aaa;font-size:9px;font-family:'Share Tech Mono',monospace;"> · </span><span class="legal-link" onclick="openOverlay('terms')">Terms</span>
+      </div>
+    </div>
+
+    <div id="challengeArea" style="display:none;">
+      <div class="image-grid-section">
+        <div class="grid-instruction">
+          <strong>Identify the human here.</strong>
+          Select all squares containing a human being.
+        </div>
+        <div class="image-grid" id="imageGrid">
+          <!-- Cells rendered by JS -->
+        </div>
+      </div>
+
+      <div class="status-line" id="statusLine">Select all images matching the criteria above.</div>
+
+      <div class="captcha-footer">
+        <button class="refresh-btn" onclick="reshuffleGrid()" title="Try different images">↻</button>
+        <button class="verify-btn" onclick="verifySelection()">VERIFY</button>
+      </div>
+
+      <div class="answer-panel" id="answerPanel">
+        <div class="answer-header">CLASSIFIED RECORDS — ACCESSED</div>
+        <div id="answerContent"></div>
+        <div id="tryAgainBtn" style="display:none; padding: 20px 0 8px; text-align:center;">
+          <span onclick="location.reload()" style="
+            color: #ff0040;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 13px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: 1px solid #ff0040;
+            padding: 8px 20px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+          "
+          onmouseover="this.style.background='#ff0040';this.style.color='#0d0d0d'"
+          onmouseout="this.style.background='transparent';this.style.color='#ff0040'"
+          >try again</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="collapsed-state" id="collapsedState">
+      <div class="collapsed-text" id="collapsedText">
+        . . . . . . . . . . . . . . . . . . . .
+      </div>
+    </div>
+
+    <!-- Legal overlay -->
+    <div class="legal-overlay" id="legalOverlay">
+      <div class="legal-overlay-header">
+        <span id="legalOverlayTitle">Privacy Policy</span>
+        <button class="legal-close-btn" onclick="closeOverlay()">✕</button>
+      </div>
+      <div class="legal-overlay-body" id="legalOverlayBody"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+
+// This is where the assets lie in.
+const PRISONERS = [
+  {
+    id: 'leila',
+    name: 'Sen. Leila de Lima',
+    role: 'Former Senator',
+    isHuman: true,
+    colors: ['#c8a882', '#8b6347', '#d4b896', '#6b4f38', '#e8cba8'],
+    bio: 'Detained for over 6 years without conviction. Former human rights commissioner and senator. Imprisoned after investigating extrajudicial killings. Her case is considered by the UN to be an arbitrary detention.',
+    redacted: ['drug trafficking charges', 'Department of Justice', 'key witness recanted']
+  },
+  {
+    id: 'consenas',
+    name: 'Maritess Coseñas',
+    role: 'Peasant Organizer',
+    isHuman: true,
+    colors: ['#7a6b5a', '#4a3f35', '#9a8b7a', '#3d342c', '#b8a898'],
+    bio: 'Arrested on January 27, 2009 in Northern Samar after accompaning a local leader who sought medical treatment in Manila. She was unjustly convicted and charged for her participation in anti-government associations. Coseñas is currently serving time at the Correctional Institution for Women in Mandaluyong City, Metro Manila.',
+    redacted: ['National Task Force ELCAC', 'red-tagging list', 'executive order 70']
+  },
+  {
+    id: 'tariman',
+    name: 'Kerima Tariman',
+    role: 'Teacher / Poet',
+    isHuman: true,
+    colors: ['#b09070', '#7a6050', '#c8a888', '#604838', '#d8b898'],
+    bio: 'A teacher and poet killed during an encounter. Previously arrested and detained for her political poetry and advocacy for indigenous peoples was used as evidence of subversion.',
+    redacted: ['Oplan Kapanatagan', 'intelligence report', 'classified informant']
+  },
+  {
+    id: 'enchanis',
+    name: 'Randall Echanis',
+    role: 'Peasant Rights Advocate',
+    isHuman: true,
+    colors: ['#9a8878', '#6a5848', '#b8a090', '#5a4838', '#c8b0a0'],
+    bio: 'Peasant rights leader and peace consultant killed in 2020 while under government safe conduct pass. Found with signs of torture, with his death led to suspension of peace talks.',
+    redacted: ['peace negotiations', 'NDF panel', 'CARHRIHL violation']
+  },
+  {
+    id: 'cumpio',
+    name: 'Frenchie Mae Cumpio',
+    role: 'Journalist',
+    isHuman: true,
+    colors: ['#a07060', '#5a3828', '#c89080', '#483020', '#d8a898'],
+    bio: 'Cumpio is a community journalist based in Tacloban City, Philippines. She was unlawfully arrested in February 8, 2020 by being charged with "illegal possession of firearms" and terrorism. This arrest was a result of her anti-elitist remarks at the Philippine Government.'
+  },
+  {
+    id: 'domequil',
+    name: 'Marielle Domequil',
+    role: 'Development Worker @ Rural Missionaries of the Philippines',
+    isHuman: true,
+    colors: ['#a07060', '#5a3828', '#c89080', '#483020', '#d8a898'],
+    bio: 'Domequil is a community activitst based in Tacloban City, Philippines. She was unlawfully arrested alongside Cumpio in February 8, 2020 by being charged with "illegal possession of firearms" and terrorism. This arrest was a result of her involvement with anti-eltist activist groups in her community.'
+  }
+];
+
+const POLITICIANS = [
+  {
+    id: 'marcos',
+    name: 'BongBong Marcos / Ferdinand Marcos Jr.', 
+    role: '17th President of the Philippines',
+    isHuman: false,
+    colors: ['#d4c4a8', '#a89070', '#e8d8b8', '#887050', '#f0e0c8'],
+    bio: 'Son of the late dictator Ferdinand Marcos Sr., under a political regime with an estimated 3,257 killed, 35,000 tortured, and 70,000 imprisoned. Since his election in 2022, he is currently convicted of under the rug "ghost" flood projects that has affected thousands of Filipinos during monsoon seasons.',
+  },
+  {
+    id: 'duterte',
+    name: 'Rodrigo Duterte',
+    role: '16th President of the Philippines',
+    isHuman: false,
+    colors: ['#c0b0a0', '#908070', '#d8c8b0', '#706050', '#e0d0b8'],
+    bio: 'Presided over a drug war resulting in between 12,000–30,000 deaths according to human rights groups. Duterte is currently facing International Criminal Court investigation for crimes against humanity, as he has admitted ordering killings whether innocent or not.',
+  },
+  {
+    id: 'enrile',
+    name: 'Jovito Salonga Enrile',
+    role: 'Senator',
+    isHuman: false,
+    colors: ['#a89888', '#787060', '#b8a898', '#585048', '#c8b8a8'],
+    bio: 'Former Marcos martial law minister and senator. Involved in PDAF (pork barrel) scam with charges dismissed due to his connections with the Marcos Family. His passing early in 2025 still reminds Filipinos of his controversial partaking in the killings of thousands of anti-Marcos activists during the late 20th century.',
+  }
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let failCount = 0;
+let currentGrid = [];
+let selectedCells = new Set();
+let gameOver = false;
+
+// ─── GRID SETUP ──────────────────────────────────────────────────────────────
+
+function buildGrid() {
+  const all = [...PRISONERS, ...POLITICIANS];
+  const scrambleLevel = 0;
+
+  // Shuffle all people and take 9 for the grid
+  const shuffled = all.sort(() => Math.random() - 0.5);
+  const selected = shuffled.slice(0, 9);
+
+  return selected.map((p, i) => ({ ...p, scramble: scrambleLevel, cellIndex: i }));
+}
+
+function renderGrid() {
+  const grid = document.getElementById('imageGrid');
+  grid.innerHTML = '';
+  selectedCells.clear();
+  currentGrid = buildGrid();
+
+  currentGrid.forEach((person, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'grid-cell';
+    cell.dataset.index = i;
+
+    const img = document.createElement('img');
+    img.src = `./img/${person.id}.jpg`;
+    img.alt = person.name;
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'cover';
+    img.style.objectPosition = 'center';
+    img.style.display = 'block';
+
+    const label = document.createElement('div');
+    label.className = 'cell-label';
+    label.textContent = 'SUBJECT';
+
+    cell.appendChild(img);
+    cell.appendChild(label);
+    grid.appendChild(cell);
+
+    cell.addEventListener('click', () => toggleCell(i, cell));
+  });
+}
+
+function toggleCell(index, el) {
+  if (selectedCells.has(index)) {
+    selectedCells.delete(index);
+    el.classList.remove('selected');
+  } else {
+    selectedCells.add(index);
+    el.classList.add('selected');
+  }
+}
+
+// ─── VERIFY ──────────────────────────────────────────────────────────────────
+
+function verifySelection() {
+  const correctIndices = currentGrid
+    .map((p, i) => p.isHuman ? i : null)
+    .filter(i => i !== null);
+
+  const isCorrect =
+    correctIndices.length === selectedCells.size &&
+    correctIndices.every(i => selectedCells.has(i));
+
+  if (isCorrect) {
+    showSuccess();
+  } else {
+    failCount++;
+    showFailure();
+  }
+}
+
+function showSuccess() {
+  document.getElementById('statusLine').textContent = '✓ VERIFICATION COMPLETE — HUMANITY DETECTED';
+  document.getElementById('statusLine').className = 'status-line success';
+  document.getElementById('mainCheckbox').innerHTML = '✓';
+  document.getElementById('mainCheckbox').style.background = '#4a90d9';
+  document.getElementById('mainCheckbox').style.color = 'white';
+  document.getElementById('mainCheckbox').style.display = 'flex';
+  document.getElementById('mainCheckbox').style.alignItems = 'center';
+  document.getElementById('mainCheckbox').style.justifyContent = 'center';
+  document.getElementById('mainCheckbox').style.fontWeight = 'bold';
+  showAnswers(true);
+  const btn = document.getElementById('tryAgainBtn');
+  btn.innerHTML = `<span onclick="window.location.href='archive.html'" style="color: #00ff88; font-family: 'Share Tech Mono', monospace; font-size: 13px; letter-spacing: 0.25em; text-transform: uppercase; cursor: pointer; border: 1px solid #00ff88; padding: 8px 20px; display: inline-block; transition: background 0.2s, color 0.2s;" onmouseover="this.style.background='#00ff88';this.style.color='#0d0d0d'" onmouseout="this.style.background='transparent';this.style.color='#00ff88'">enter</span>`;
+  btn.style.display = 'block';
+  setTimeout(() => {
+    document.getElementById('answerPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 300);
+}
+
+function showFailure() {
+  const wrapper = document.getElementById('captchaWrapper');
+  const pct = Math.max(0, 100 - failCount * 18);
+  document.getElementById('humanityFill').style.width = pct + '%';
+  document.getElementById('humanityFill').style.backgroundPosition = (failCount * 20) + '% 50%';
+
+  document.getElementById('attemptNum').textContent = Math.min(failCount + 1, 3);
+
+  const statusEl = document.getElementById('statusLine');
+
+  if (failCount >= 3) {
+    statusEl.className = 'status-line error';
+    statusEl.textContent = 'HUMANITY INDEX CRITICAL — DISPLAYING CLASSIFIED RECORDS';
+    // Hide the refresh button since answers should be shown
+    document.querySelector('.refresh-btn').style.display = 'none';
+    showAnswers();
+    triggerDecay();
+    setTimeout(() => {
+      document.getElementById('tryAgainBtn').style.display = 'block';
+      document.getElementById('answerPanel').scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 800);
+  } else {
+    statusEl.className = 'status-line warn';
+    statusEl.textContent = `INCORRECT. ${['Humans and politicians look the same to you.', 'The algorithm cannot tell either.'][Math.min(failCount-1,1)]}`;
+    setTimeout(() => {
+      reshuffleGrid();
+    }, 1200);
+  }
+}
+
+// ─── ANSWERS ─────────────────────────────────────────────────────────────────
+
+function showAnswers(showAll = false) {
+  const panel = document.getElementById('answerPanel');
+  const content = document.getElementById('answerContent');
+  const header = document.querySelector('.answer-header');
+  header.textContent = showAll ? 'FULL ARCHIVE — HUMAN VERIFIED' : 'CLASSIFIED RECORDS — ACCESSED';
+  panel.classList.add('open');
+
+  content.innerHTML = '';
+
+  const sourceAssets = showAll ? [...PRISONERS, ...POLITICIANS] : currentGrid;
+  const dedupedAssets = sourceAssets.filter((person, idx, arr) => arr.findIndex(p => p.id === person.id) === idx);
+
+  dedupedAssets.forEach((person, i) => {
+    if (content.querySelector(`[data-pid="${person.id}"]`)) return;
+    const card = document.createElement('div');
+    card.className = 'person-card';
+    card.dataset.pid = person.id;
+
+    const nameColor = person.isHuman ? 'var(--cold)' : 'var(--glitch)';
+    const borderColor = person.isHuman ? 'var(--cold)' : 'var(--glitch)';
+    card.style.borderLeftColor = borderColor;
+
+    let bioHtml = person.bio;
+    if (person.redacted) {
+      person.redacted.forEach(r => {
+        bioHtml = bioHtml.replace(r, `<span class="redact" title="[INFORMATION WITHHELD]">${r}</span>`);
+      });
+    }
+
+
+
+    card.innerHTML = `
+      <div class="person-image">
+        <img src="./img/${person.id}.jpg" alt="${person.name}" />
+      </div>
+      <div class="person-info">
+        <div class="person-name" style="color:${nameColor}">${person.name}</div>
+        <div class="person-role">${person.role} · ${person.isHuman ? '▸ HUMAN' : '▸ NON-HUMAN'}</div>
+        <div class="person-bio">${bioHtml}</div>
+      </div>
+    `;
+
+    content.appendChild(card);
+  });
+
+  // Scroll into view
+  setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+}
+
+// ─── RESHUFFLE ───────────────────────────────────────────────────────────────
+
+function reshuffleGrid() {
+  document.getElementById('answerPanel').classList.remove('open');
+  // Make sure refresh button is visible
+  document.querySelector('.refresh-btn').style.display = 'block';
+  // Scramble existing cells visually
+  const cells = document.querySelectorAll('.grid-cell');
+  cells.forEach(c => c.classList.add('scrambling'));
+  setTimeout(() => {
+    cells.forEach(c => c.classList.remove('scrambling'));
+    renderGrid();
+    const statusEl = document.getElementById('statusLine');
+    statusEl.className = 'status-line';
+    statusEl.textContent = 'Select all images matching the criteria above.';
+  }, 650);
+}
+
+// ─── DECAY + COLLAPSE ────────────────────────────────────────────────────────
+
+function triggerDecay() {
+  const canvas = document.getElementById('decayCanvas');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  canvas.style.opacity = '0.3';
+
+  let frame = 0;
+  function drawDecay() {
+    if (frame > 120) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const blockSize = 4 + Math.floor(frame * 0.3);
+    for (let y = 0; y < canvas.height; y += blockSize) {
+      for (let x = 0; x < canvas.width; x += blockSize) {
+        if (Math.random() < frame / 300) {
+          const r = Math.floor(Math.random() * 60);
+          const g = Math.floor(Math.random() * 10);
+          const b = Math.floor(Math.random() * 10);
+          ctx.fillStyle = `rgba(${r},${g},${b},${Math.random() * 0.5})`;
+          ctx.fillRect(x, y, blockSize, blockSize);
+        }
+      }
+    }
+    frame++;
+    requestAnimationFrame(drawDecay);
+  }
+  drawDecay();
+}
+
+function triggerCollapse() {
+  document.getElementById('challengeArea').style.display = 'none';
+  document.getElementById('collapsedState').classList.add('active');
+
+  const el = document.getElementById('collapsedText');
+  const chars = '█▓▒░╳∎■▪·';
+  let t = 0;
+  setInterval(() => {
+    let out = '';
+    for (let i = 0; i < 120; i++) {
+      out += Math.random() < 0.9
+        ? chars[Math.floor(Math.random() * chars.length)]
+        : ' ';
+    }
+    el.textContent = out;
+    t++;
+    if (t > 40) {
+      el.style.color = '#111';
+      el.textContent = Array(120).fill('·').join('');
+      document.getElementById('tryAgainBtn').style.display = 'block';
+    }
+  }, 150);
+}
+
+function triggerGlitchLines() {
+  for (let i = 0; i < failCount; i++) {
+    const line = document.createElement('div');
+    line.className = 'glitch-line';
+    line.style.left = Math.random() * window.innerWidth + 'px';
+    line.style.top = Math.random() * window.innerHeight + 'px';
+    line.style.height = (Math.random() * window.innerHeight * 0.2) + 'px';
+    line.style.opacity = '0';
+    line.style.width = '1px';
+    line.style.animationDelay = (Math.random() * 0.15) + 's';
+    document.body.appendChild(line);
+    setTimeout(() => line.remove(), 500);
+  }
+}
+
+// Anything below here is written by me.
+const LEGAL_CONTENT = {
+  privacy: {
+    title: 'Privacy Policy',
+    body: `
+      <h3>Introduction</h3>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>
+      <h3>Data Collection</h3>
+      <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+      <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
+      <h3>Use of Information</h3>
+      <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet.</p>
+      <h3>Third Parties</h3>
+      <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.</p>
+      <h3>Your Rights</h3>
+      <p>Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus.</p>
+    `
+  },
+  terms: {
+    title: 'Terms of Service',
+    body: `
+      <h3>Acceptance of Terms</h3>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla facilisi. Maecenas vel erat at nunc tincidunt fermentum. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae.</p>
+      <h3>Use of Service</h3>
+      <p>Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper.</p>
+      <p>Aenean ultricies mi vitae est. Mauris placerat eleifend leo. Quisque sit amet est et sapien ullamcorper pharetra. Vestibulum erat wisi, condimentum sed, commodo vitae.</p>
+      <h3>Prohibited Conduct</h3>
+      <p>Nam pretium turpis et arcu. Duis arcu tortor, suscipit eget, imperdiet nec, imperdiet iaculis, ipsum. Sed aliquam ultrices mauris. Integer ante arcu, accumsan a, consectetuer eget, posuere ut, mauris.</p>
+      <h3>Limitation of Liability</h3>
+      <p>Praesent dapibus, neque id cursus faucibus, tortor neque egestas augue, eu vulputate magna eros eu erat. Aliquam erat volutpat. Nam dui mi, tincidunt quis, accumsan porttitor, facilisis luctus, metus.</p>
+      <h3>Modifications</h3>
+      <p>Phasellus ultrices nulla quis nibh. Quisque a lectus. Donec consectetuer ligula vulputate sem tristique cursus. Nam nulla quam, gravida non, commodo a, sodales sit amet, nisi.</p>
+    `
+  }
+};
+
+function openOverlay(type) {
+  const data = LEGAL_CONTENT[type];
+  document.getElementById('legalOverlayTitle').textContent = data.title;
+  document.getElementById('legalOverlayBody').innerHTML = data.body;
+  document.getElementById('legalOverlay').classList.add('open');
+}
+
+function closeOverlay() {
+  document.getElementById('legalOverlay').classList.remove('open');
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+
+function activateCaptcha() {
+  document.getElementById('mainCheckbox').style.opacity = '0.5';
+  document.getElementById('mainCheckbox').style.cursor = 'default';
+  document.getElementById('challengeArea').style.display = 'block';
+  renderGrid();
+}
+
+</script>
+</body>
+</html>
