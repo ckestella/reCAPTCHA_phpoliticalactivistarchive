@@ -871,7 +871,7 @@ function showFailure() {
     }, 800);
   } else {
     statusEl.className = 'status-line warn';
-    statusEl.textContent = `INCORRECT. ${['Try again.', 'After this attempt, you will be prompted to re-learn and restart.'][Math.min(failCount-1,1)]}`;
+    statusEl.textContent = `INCORRECT. ${['Try again. You may have missed some humans or selected elitist subjects.', 'After this attempt, you will be prompted to re-learn and restart.'][Math.min(failCount-1,1)]}`;
     setTimeout(() => {
       reshuffleGrid();
     }, 1200);
