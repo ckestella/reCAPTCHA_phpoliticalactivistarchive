@@ -683,7 +683,7 @@ const PRISONERS = [
     role: 'Peasant Organizer',
     isHuman: true,
     colors: ['#7a6b5a', '#4a3f35', '#9a8b7a', '#3d342c', '#b8a898'],
-    bio: 'Arrested on January 27, 2009 in Northern Samar after accompaning a local leader who sought medical treatment in Manila. She was unjustly convicted and charged for her participation in anti-government associations. Coseñas is currently serving time at the Correctional Institution for Women in Mandaluyong City, Metro Manila.',
+    bio: 'Arrested on January 27, 2009 in Northern Samar after accompanying a local leader who sought medical treatment in Manila. She was unjustly convicted and charged for her participation in anti-government associations. Coseñas is currently serving time at the Correctional Institution for Women in Mandaluyong City, Metro Manila.',
     redacted: ['National Task Force ELCAC', 'red-tagging list', 'executive order 70']
   },
   {
@@ -718,7 +718,7 @@ const PRISONERS = [
     role: 'Development Worker @ Rural Missionaries of the Philippines',
     isHuman: true,
     colors: ['#a07060', '#5a3828', '#c89080', '#483020', '#d8a898'],
-    bio: 'Domequil is a community activitst based in Tacloban City, Philippines. She was unlawfully arrested alongside Cumpio in February 8, 2020 by being charged with "illegal possession of firearms" and terrorism. This arrest was a result of her involvement with anti-eltist activist groups in her community.'
+    bio: 'Domequil is a community activist based in Tacloban City, Philippines. She was unlawfully arrested alongside Cumpio in February 8, 2020 by being charged with "illegal possession of firearms" and terrorism. This arrest was a result of her involvement with anti-elitist activist groups in her community.'
   }
 ];
 
@@ -746,7 +746,23 @@ const POLITICIANS = [
     isHuman: false,
     colors: ['#a89888', '#787060', '#b8a898', '#585048', '#c8b8a8'],
     bio: 'Former Marcos martial law minister and senator. Involved in PDAF (pork barrel) scam with charges dismissed due to his connections with the Marcos Family. His passing early in 2025 still reminds Filipinos of his controversial partaking in the killings of thousands of anti-Marcos activists during the late 20th century.',
-  }
+  },
+  {
+    id: 'bantag',
+    name: 'Gerald Bantag',
+    role: 'Philippines’ Bureau of Corrections Chief',
+    isHuman: false,
+    colors: ['#a89888', '#787060', '#b8a898', '#585048', '#c8b8a8'],
+    bio: 'Alleged mastermind behind the death of Percy Lapid, a journalist known for his commitment to expose government corruption. His death on October 3, 2022, raised concerns about press freedom in the Philippines.',
+  },
+  {
+    id: 'guo',
+    name: 'Alice Guo',
+    role: 'Former Mayor of Bamban, Tarlac',
+    isHuman: false,
+    colors: ['#a89888', '#787060', '#b8a898', '#585048', '#c8b8a8'],
+    bio: 'Multiple accusations of human trafficking, government infiltration, and espionage in November 19, 2025. She continues to be one of the most severe cases of government corruption in the Philippines.',
+  },
 ];
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
@@ -825,7 +841,7 @@ function verifySelection() {
     showSuccess();
   } else {
     failCount++;
-    showFailure();
+    showFailure(correctIndices);
   }
 }
 
@@ -848,7 +864,7 @@ function showSuccess() {
   }, 300);
 }
 
-function showFailure() {
+function showFailure(correctIndices) {
   const wrapper = document.getElementById('captchaWrapper');
   const pct = Math.max(0, 100 - failCount * 18);
   document.getElementById('humanityFill').style.width = pct + '%';
@@ -870,11 +886,16 @@ function showFailure() {
       document.getElementById('answerPanel').scrollIntoView({ behavior: 'smooth', block: 'end' });
     }, 800);
   } else {
+    // Calculate how many correct ones were selected
+    const correctlySelected = correctIndices.filter(i => selectedCells.has(i)).length;
+    const totalCorrect = correctIndices.length;
+    const previousMsg = ['You may have missed some humans or selected elitist subjects.', 'You will be prompted to learn the subjects and restart.'][Math.min(failCount-1,1)];
+    
     statusEl.className = 'status-line warn';
-    statusEl.textContent = `INCORRECT. ${['Try again. You may have missed some humans or selected elitist subjects.', 'You will be prompted to learn the subjects and restart.'][Math.min(failCount-1,1)]}`;
+    statusEl.textContent = `INCORRECT. ${previousMsg} You selected ${correctlySelected} out of ${totalCorrect} correct subjects.`;
     setTimeout(() => {
       reshuffleGrid();
-    }, 1200);
+    }, 5000);
   }
 }
 
@@ -1023,32 +1044,24 @@ const LEGAL_CONTENT = {
     title: 'Privacy Policy',
     body: `
       <h3>Introduction</h3>
-      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>
+      <p>This CAPTCHA is designed to verify that you are a human through a series of challenges in relation to Philippine politics and activism.</p>
       <h3>Data Collection</h3>
-      <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-      <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
+      <p>Data is not collected or stored by this CAPTCHA. This CAPTCHA allows users to refer back to answer choices to learn the content before proceeding further.</p>
       <h3>Use of Information</h3>
-      <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet.</p>
-      <h3>Third Parties</h3>
-      <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.</p>
+      <p>The only forms of information provided are educational and satircal for this redesign CAPTCHA. Extensive research has been done with the human and non-human subjects for further reviewing. These subjects range from notable Filipino political activists that have been either incarcerated or killed by corrupt government officials. </p>
       <h3>Your Rights</h3>
-      <p>Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus.</p>
+      <p>Your rights as a user of this CAPTCHA is to be educated about the subjects and their relation to Philippine politics and activism. This is not to discourage any user from failure, rather to be better informed as a user accessing the archival website.</p>
     `
   },
   terms: {
     title: 'Terms of Service',
     body: `
       <h3>Acceptance of Terms</h3>
-      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla facilisi. Maecenas vel erat at nunc tincidunt fermentum. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae.</p>
+      <p>This CAPTCHA is designed to verify that you are a human through a series of challenges in relation to Philippine elitism and activism..</p>
       <h3>Use of Service</h3>
-      <p>Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper.</p>
-      <p>Aenean ultricies mi vitae est. Mauris placerat eleifend leo. Quisque sit amet est et sapien ullamcorper pharetra. Vestibulum erat wisi, condimentum sed, commodo vitae.</p>
+      <p>Any user is free to access the content in this CAPTCHA/archival website. This is built for satrical art means within the realm of Filipino contemporary arts.</p>
       <h3>Prohibited Conduct</h3>
-      <p>Nam pretium turpis et arcu. Duis arcu tortor, suscipit eget, imperdiet nec, imperdiet iaculis, ipsum. Sed aliquam ultrices mauris. Integer ante arcu, accumsan a, consectetuer eget, posuere ut, mauris.</p>
-      <h3>Limitation of Liability</h3>
-      <p>Praesent dapibus, neque id cursus faucibus, tortor neque egestas augue, eu vulputate magna eros eu erat. Aliquam erat volutpat. Nam dui mi, tincidunt quis, accumsan porttitor, facilisis luctus, metus.</p>
-      <h3>Modifications</h3>
-      <p>Phasellus ultrices nulla quis nibh. Quisque a lectus. Donec consectetuer ligula vulputate sem tristique cursus. Nam nulla quam, gravida non, commodo a, sodales sit amet, nisi.</p>
+      <p>Political officials who violate the basic human rights of Filipinos are prohibited from accessing this CAPTCHA. This archival is only accessible to humans rather non-human elitists as intended.</p>
     `
   }
 };
